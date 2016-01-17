@@ -1,0 +1,28 @@
+{
+  "name": "harpy",
+  "version": "0.1.0",
+  "description": "json-rpc communication utility",
+  "keywords": [
+    "rpc"
+  ],
+  "main": "lib/index.js",
+  "browser": "lib/browser.js",
+  "scripts": {
+    "prepublish": "webpack"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sciolist/node-harpy.git"
+  },
+  "author": "Daniel Pihlström",
+  "license": "ISC",
+  "dependencies": {
+    "carrier": "^0.2.1",
+    "ws": "^1.0.1"
+  },
+  "devDependencies": {
+    "es6-promise": "^3.0.2",
+    "expose-loader": "^0.7.1",
+    "webpack": "^1.12.11"
+  }
+}
