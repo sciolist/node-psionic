@@ -2,10 +2,10 @@
 // $ npm i -g babel-cli
 // $ babel-node client.js MyName
 
-import harpy from '../../lib/socket';
+import psionic from '../../lib/socket';
 
 (async function () {
-  const client = await harpy.connect({ port: 3000 }, {
+  const client = await psionic.connect({ port: 3000 }, {
     // optional context object to pass to the server
     describe: { username: process.argv[2] || 'world' }
   });

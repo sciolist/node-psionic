@@ -1,8 +1,8 @@
-# harpy rpc
+# psionic rpc
 
 not stable.
 
-harpy is a bidirectional rpc system for node, glued together with json-rpc and a promise-based workflow.
+psionic is a bidirectional rpc system for node, glued together with json-rpc and a promise-based workflow.
 
 ## getting started
 
@@ -11,9 +11,9 @@ to create a websocket-server (using [ws](https://github.com/websockets/ws)):
 ``` js
 // server
 // note: using babel is optional, but more fun.
-import harpy from 'harpy';
+import psionic from 'psionic';
 
-harpy.webSocket.createServer({ port: 3000 }, function (client) {
+psionic.webSocket.createServer({ port: 3000 }, function (client) {
   // you have to call 'describe' once for the client to start.
   client.describe({
     factor: 'doubling'
@@ -28,10 +28,10 @@ and a corresponding client:
 
 ``` js
 // client
-import harpy from 'harpy';
+import psionic from 'psionic';
 
 (async function () {
-  let client = await harpy.webSocket.connect('ws://localhost:3000');
+  let client = await psionic.webSocket.connect('ws://localhost:3000');
   let doubled = await client.multiply(5);
   console.log(client.factor + '5 gives ' + doubled + '! amazing!');
   // doubling 5 gives 10! amazing!
@@ -44,10 +44,10 @@ the client can also call describe to send state to the server.
 
 ``` js
 // client
-import harpy from 'harpy';
+import psionic from 'psionic';
 
 (async function () {
-  let client = await harpy.webSocket.connect('ws://localhost:3000', {
+  let client = await psionic.webSocket.connect('ws://localhost:3000', {
     // using connect options, your state will be sent right as the server socket is created.
     describe: { name: "joe" }
   });
@@ -70,9 +70,9 @@ corresponding server:
 
 ``` js
 // server
-import harpy from 'harpy';
+import psionic from 'psionic';
 
-harpy.webSocket.createServer({ port: 3000 }, function (client) {
+psionic.webSocket.createServer({ port: 3000 }, function (client) {
   // the 'client' objects data is sent from the client,
   // it is user input and can't be trusted.
   let name = client.name; // joe
@@ -95,9 +95,9 @@ if you need ad-hoc message passing, you can use the event emitter:
 ``` js
 // server
 // note: using babel is optional, but more fun.
-import harpy from 'harpy';
+import psionic from 'psionic';
 
-harpy.webSocket.createServer({ port: 3000 }, function (client) {
+psionic.webSocket.createServer({ port: 3000 }, function (client) {
   client.describe({}); // describe still has to be called.
   var pings = 0;
   
@@ -115,10 +115,10 @@ and a corresponding client:
 
 ``` js
 // client
-import harpy from 'harpy';
+import psionic from 'psionic';
 
 (async function () {
-  let client = await harpy.webSocket.connect('ws://localhost:3000');
+  let client = await psionic.webSocket.connect('ws://localhost:3000');
   
   client.events.on('ping', function (i) {
     console.log(i + ' pings since we connected');
@@ -136,27 +136,27 @@ So far there is no implementation with fallbacks (using say, socket.io or primus
 
 Plain [Node.js net sockets](https://nodejs.org/api/net.html#net_net_createserver_options_connectionlistener).
 
-It can be accessed using `require('harpy').socket`, or `require('harpy/lib/socket')`
+It can be accessed using `require('psionic').socket`, or `require('psionic/lib/socket')`
 
 ``` js
 // server
-import harpy from 'harpy';
+import psionic from 'psionic';
 
 // all server options are passed to net.createServer
 // if a `port` is passed, net.listen will be called during construction.
 var opts = { port: 9000 };
 
-var server = harpy.socket.createServer(opts, function (client) { });
+var server = psionic.socket.createServer(opts, function (client) { });
 
 // createServer returns the underlying net server
 server.listen(9000);
 
 // client
-var promise = harpy.socket.connect(
+var promise = psionic.socket.connect(
 	// the first argument is passed to net.connect
 	{ port: 9000 },
     
-    // the second argument is used to configure the harpy client.
+    // the second argument is used to configure the psionic client.
     { describe: {} } 
 );
 
@@ -171,26 +171,26 @@ promise.then(function (client) {
 
 Websockets are created using the [websockets/ws](https://github.com/websockets/ws) library, or natively on the browser.
 
-It can be accessed using `require('harpy').webSocket`, or `require('harpy/lib/websocket')`
+It can be accessed using `require('psionic').webSocket`, or `require('psionic/lib/websocket')`
 
 ``` js
 // server
-import harpy from 'harpy';
+import psionic from 'psionic';
 
 // all server options are passed to the ws.Server constructor
 var opts = { port: 9000 };
 
-var server = harpy.webSocket.createServer(opts, function (client) { });
+var server = psionic.webSocket.createServer(opts, function (client) { });
 
 // createServer returns the underlying ws server
 server.listen(9000);
 
 // client
-var promise = harpy.webSocket.connect(
+var promise = psionic.webSocket.connect(
 	// the first argument is passed to the ws WebSocket constructor
     'ws://127.0.0.1:9000',
     
-    // the second argument is used to configure the harpy client.
+    // the second argument is used to configure the psionic client.
     { describe: {} } 
 );
 
@@ -203,7 +203,7 @@ promise.then(function (client) {
 
 ### browser support
 
-The WebSocket protocol does not use any polyfills at this time, so it's limited to IE10+. If that's not a problem, you can `require('harpy')` with browserify or webpack and use `harpy.webSocket.connect`. 
+The WebSocket protocol does not use any polyfills at this time, so it's limited to IE10+. If that's not a problem, you can `require('psionic')` with browserify or webpack and use `psionic.webSocket.connect`. 
 
 
 # client object
@@ -271,7 +271,7 @@ you can supply options (well, option..) to configure the client.
 
 # messaging protocol
 
-Harpy uses [JSON-RPC](http://json-rpc.org/wiki/specification) messages, with single line JSON. It does not support notification requests at this time, all requests must be responded to.
+Psionic uses [JSON-RPC](http://json-rpc.org/wiki/specification) messages, with single line JSON. It does not support notification requests at this time, all requests must be responded to.
 
 #### example messages
 
@@ -281,7 +281,7 @@ The client starts this, by calling the "@describe" function.
 <div style="font-size:10px;margin-bottom:-8px;height:10px;">(client to server)</div>
 
 ```json
-{"id":1,"name":"@describe","args":[{"test":"harpy!function","example":"value"}]}
+{"id":1,"name":"@describe","args":[{"test":"psionic!function","example":"value"}]}
 ````
 
 This tells the server to create an rpc-function called "test", and an extra value to add to the `client` object. The object can be arbitrarily nested.. When the server is ready, it responds to the message and sends its own description.
@@ -290,7 +290,7 @@ This tells the server to create an rpc-function called "test", and an extra valu
 
 ```json
 {"id":1}
-{"id":5,"name":"@describe","args":[{"login":"harpy!function"}]}
+{"id":5,"name":"@describe","args":[{"login":"psionic!function"}]}
 ```
 
 The client then responds to the message, and calls its login function.

@@ -1,7 +1,7 @@
-// importing the browser bundle exposes a 'Harpy' global
-// import '../../dist/harpy.min.js';
+// importing the browser bundle exposes a 'Psionic' global
+// import '../../dist/psionic.min.js';
 
-import harpy from '../..'; // import harpy from 'harpy';
+import psionic from '../..'; // import psionic from 'psionic';
 import React from 'react';
 import ReactDOM from 'react-dom';
 
@@ -63,7 +63,7 @@ class App extends React.Component {
 }
 
 (async function run() {
-  let client = await harpy.webSocket.connect('ws://' + location.host, {
+  let client = await psionic.webSocket.connect('ws://' + location.host, {
     describe: { token: 'hello' }
   });
   ReactDOM.render(<App client={client} />, document.getElementById('root'));

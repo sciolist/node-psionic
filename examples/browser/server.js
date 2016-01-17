@@ -3,7 +3,7 @@
 // $ babel-node server.js
 
 var httpd = require('./webpack.devserver');
-var harpy = require('../../lib/websocket');
+var psionic = require('../../lib/websocket');
 var _ = require('lodash');
 
 var dataset = require('./testdataset.json');
@@ -24,7 +24,7 @@ let Nominations = {
 
 // WS.createServer accepts an http server, or port/host options to
 // start a standalone server.
-harpy.createServer({ server: httpd }, function (client) {
+psionic.createServer({ server: httpd }, function (client) {
   if (!client.token || client.token.length !== 5) {
 	  return client.describe({ failed: true });
   }

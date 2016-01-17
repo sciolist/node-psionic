@@ -2,10 +2,10 @@
 // $ npm i -g babel-cli
 // $ babel-node server.js
 
-import harpy from '../../lib/socket';
+import psionic from '../../lib/socket';
 
 // create a server on port 3000, callback is called when a user connects.
-harpy.createServer({ port: 3000 }, function (client) {
+psionic.createServer({ port: 3000 }, function (client) {
   // the values on `client` can be changed by the user, so, don't trust them!
   let username = client.username;
 

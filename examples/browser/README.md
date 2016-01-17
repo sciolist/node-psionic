@@ -1,6 +1,6 @@
 # Websocket example
 
-This example sets up a small webserver, and connects a react component to a harpy backend.
+This example sets up a small webserver, and connects a react component to a psionic backend.
 
 ## Running
 
