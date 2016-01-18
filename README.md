@@ -8,9 +8,11 @@ psionic is a bidirectional rpc system for node, glued together with json-rpc and
 
 to create a websocket-server (using [ws](https://github.com/websockets/ws)):
 
+> all these examples use `babel-node`, [see the examples folder for config.](https://github.com/examples/simple-socket)
+> using babel is optional, but it does make working with promises nicer.
+
 ``` js
 // server
-// note: using babel is optional, but more fun.
 import psionic from 'psionic';
 
 psionic.webSocket.createServer({ port: 3000 }, function (client) {
@@ -94,7 +96,6 @@ if you need ad-hoc message passing, you can use the event emitter:
 
 ``` js
 // server
-// note: using babel is optional, but more fun.
 import psionic from 'psionic';
 
 psionic.webSocket.createServer({ port: 3000 }, function (client) {
