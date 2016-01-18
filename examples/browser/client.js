@@ -66,6 +66,8 @@ class App extends React.Component {
   let client = await psionic.webSocket.connect('ws://' + location.host, {
     describe: { token: 'hello' }
   });
+
+  window.client = client;
   ReactDOM.render(<App client={client} />, document.getElementById('root'));
 })()
 .catch(ex => console.error(ex.stack));
