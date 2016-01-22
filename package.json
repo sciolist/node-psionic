@@ -17,8 +17,9 @@
   "author": "Daniel Pihlström",
   "license": "ISC",
   "dependencies": {
-    "es6-promise": "^3.0.2",
     "carrier": "^0.2.1",
+    "es6-promise": "^3.0.2",
+    "eventemitter2": "^0.4.14",
     "ws": "^1.0.1"
   },
   "devDependencies": {
