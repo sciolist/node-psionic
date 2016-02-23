@@ -1,6 +1,6 @@
 {
   "name": "psionic",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "description": "json-rpc communication utility",
   "keywords": [
     "rpc"
