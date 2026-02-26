@@ -1,32 +1,30 @@
 {
   "name": "psionic",
-  "version": "0.1.14",
-  "description": "json-rpc communication utility",
-  "keywords": [
-    "rpc"
-  ],
-  "main": "lib/index.js",
-  "browser": "lib/browser.js",
-  "scripts": {
-    "prepublish": "webpack"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git://github.com/sciolist/node-psionic.git"
-  },
-  "author": "Daniel Pihlström",
+  "version": "0.3.0",
+  "description": "Light-weight streaming RPC library for JavaScript",
   "license": "ISC",
-  "dependencies": {
-    "carrier": "^0.2.1",
-    "es6-promise": "^3.0.2",
-    "eventemitter2": "^0.4.14",
-    "object-assign": "^4.0.1",
-    "socket.io": "^1.4.5",
-    "socket.io-client": "^1.4.5",
-    "ws": "^1.0.1"
+  "author": "JDP",
+  "type": "module",
+  "scripts": {
+    "test": "./tests",
+    "build": "tsdown && node make-package.js"
   },
   "devDependencies": {
-    "expose-loader": "^0.7.1",
-    "webpack": "^1.12.11"
+    "@types/node": "^25.2.3",
+    "@types/react": "^19.2.14",
+    "tsdown": "^0.20.3",
+    "typescript": "^5.9.3"
+  },
+  "exports": {
+    "./utils/react-hooks": "./src/utils/react-hooks.ts",
+    "./adapters/webworker": "./src/adapters/webworker.ts",
+    "./adapters/reconnect": "./src/adapters/reconnect.ts",
+    "./adapters/resend": "./src/adapters/resend.ts",
+    "./adapters/socket": "./src/adapters/socket.ts",
+    "./adapters/websocket": "./src/adapters/websocket.ts",
+    "./codecs/cbor": "./src/codecs/cbor.ts",
+    "./codecs/psionic": "./src/codecs/psionic.ts",
+    "./session": "./src/session.ts",
+    ".": "./src/psionic.ts"
   }
 }

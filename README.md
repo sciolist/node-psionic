@@ -1,331 +1,330 @@
-# psionic rpc
+# Psionic
 
-not stable.
-
-psionic is a bidirectional rpc system for node, glued together with json-rpc and a promise-based workflow.
-
-## getting started
-
-to create a websocket-server (using [ws](https://github.com/websockets/ws)):
-
-> all these examples use `babel-node`, [see the examples folder for config.](https://github.com/examples/simple-socket)
-> using babel is optional, but it does make working with promises nicer.
-
-``` js
-// server
-import psionic from 'psionic';
-
-psionic.webSocket.createServer({ port: 3000 }, function (client) {
-  // you have to call 'describe' once for the client to start.
-  client.describe({
-    factor: 'doubling'
-    // functions can return promises if needed,
-    // they'll always be promises for the caller.
-    multiply(x) { return x * 2; }
-  });
-});
+```bash
+bun add psionic # or npm install psionic
 ```
 
-and a corresponding client:
+Psionic is a lightweight bidirectional communication protocol designed for dynamic APIs and streaming data.
 
-``` js
-// client
-import psionic from 'psionic';
+Each connection consists of two symmetrical peers. Either side may expose functions, invoke calls, and stream data from the other end.
 
-(async function () {
-  let client = await psionic.webSocket.connect('ws://localhost:3000');
-  let doubled = await client.multiply(5);
-  console.log(client.factor + '5 gives ' + doubled + '! amazing!');
-  // doubling 5 gives 10! amazing!
-})().catch(ex => console.error(ex.stack));
+## Quick start - Streaming RPC data
+
+We'll start with a simple streaming chat example using the OpenAI API.
+
+```bash
+mkdir cli-chat && cd cli-chat
+bun init -y
+bun add openai psionic
 ```
 
-## server to client communication
+#### server.mjs
+```javascript
+import { createPeer } from "psionic";
+import OpenAI from "openai";
 
-the client can also call describe to send state to the server.
+// listen for incoming socket connections and create a new peer for each one
+import { createServer } from "net";
+import { createNodeSocketAdapter } from "psionic/adapters/socket";
+import { createSession } from "../../src/session";
+createServer(socket => handlePeer(createNodeSocketAdapter(socket, { session: createSession() }))).listen(1234);
 
-``` js
-// client
-import psionic from 'psionic';
+// global conversation_id for demo purposes.
+let conversation_id = undefined;
 
-(async function () {
-  let client = await psionic.webSocket.connect('ws://localhost:3000', {
-    // using connect options, your state will be sent right as the server socket is created.
-    describe: { name: "joe" }
-  });
+async function handlePeer(adapter) {
+    const peer = createPeer();
+    await peer.connect(adapter);
 
-  let result = await client.test("jdp");
-  if (!result) {
-    // you can also call describe later to send state whenever needed,
-    // which gives a promise to be sure it makes it to the server.
-    await client.describe({
-      name: "jdp",
-      welcome(x) { console.log('Server says: ' + x); }
-    });
-  }
+    const openAI = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // send a list of functions and properties to the client.
+    // they can access this under peer.remote from their end, and we can update it at any time.
+    await peer.describe(desc => ({ ...desc, prompt }));
 
-  console.log(await client.test("jdp"));
-})().catch(ex => console.error(ex.stack));
-```
-
-corresponding server:
-
-``` js
-// server
-import psionic from 'psionic';
-
-psionic.webSocket.createServer({ port: 3000 }, function (client) {
-  // the 'client' objects data is sent from the client,
-  // it is user input and can't be trusted.
-  let name = client.name; // joe
-
-  client.describe({
-    async test(testName) {
-      if (client.welcome instanceof Function) {
-        await client.welcome('Welcome, ' + client.name);
-      }
-      return testName === client.name;
+    // this is a function that can be called by the client.
+    // it returns an async generator, which allows us to stream data back to the client in chunks.
+    async function* prompt(input) {
+        try {
+            const data = await openAI.responses.create({
+                // peer.remote is a live-updating view of the client's described state.
+                model: peer.remote?.model || 'gpt-5.2',
+                store: true,
+                stream: true,
+                previous_response_id: conversation_id,
+                tools: [{ type: "web_search" }],
+                instructions: `Send really terse responses.`,
+                input: String(input)
+            });
+            for await (const part of data) {
+                console.log(part.type, part.sequence_number);
+                if (part.type === 'response.completed')
+                    conversation_id = part.response.id;
+                // yield one chunk to the client at a time
+                // this waits until they ask for the next one before continuing.
+                yield part;
+            }
+        } finally {
+            // this will run if the peer disconnects, times out, or if the function completes!
+            console.log('prompt ended!');
+        }
     }
-  });
-});
-```
-
-## emitting events
-
-if you need ad-hoc message passing, you can use the event emitter:
-
-``` js
-// server
-import psionic from 'psionic';
-
-psionic.webSocket.createServer({ port: 3000 }, function (client) {
-  client.describe({}); // describe still has to be called.
-  var pings = 0;
-  
-  client.events.on('pong', function (i) {
-    console.log('client sent a pong: ' + i);
-  });
-  
-  setInterval(function () {
-    client.emit('ping', ++pings);
-  }, 1000);
-});
-```
-
-and a corresponding client:
-
-``` js
-// client
-import psionic from 'psionic';
-
-(async function () {
-  let client = await psionic.webSocket.connect('ws://localhost:3000');
-  
-  client.events.on('ping', function (i) {
-    console.log(i + ' pings since we connected');
-    // the client can trigger events on the server, as well.
-    client.emit('pong', i);
-  });
-})().catch(ex => console.error(ex.stack));
-```
-
-# communication protocols
-
-So far there is no implementation with fallbacks (using say, socket.io or primus,) so each server/client pair is specific to a single protocol.
-
-## socket
-
-Plain [Node.js net sockets](https://nodejs.org/api/net.html#net_net_createserver_options_connectionlistener).
-
-It can be accessed using `require('psionic').socket`, or `require('psionic/lib/socket')`
-
-``` js
-// server
-import psionic from 'psionic';
-
-// all server options are passed to net.createServer
-// if a `port` is passed, net.listen will be called during construction.
-var opts = { port: 9000 };
-
-var server = psionic.socket.createServer(opts, function (client) { });
-
-// createServer returns the underlying net server
-server.listen(9000);
-
-// client
-var promise = psionic.socket.connect(
-	// the first argument is passed to net.connect
-	{ port: 9000 },
-    
-    // the second argument is used to configure the psionic client.
-    { describe: {} } 
-);
-
-promise.then(function (client) {
-	// you can get the underlying socket after connecting.
-    // note that the client auto-reconnects, so this can change.
-	var underlyingSocket = client.state.socket;
-});
-```
-
-## websocket
-
-Websockets are created using the [websockets/ws](https://github.com/websockets/ws) library, or natively on the browser.
-
-It can be accessed using `require('psionic').webSocket`, or `require('psionic/lib/websocket')`
-
-``` js
-// server
-import psionic from 'psionic';
-
-// all server options are passed to the ws.Server constructor
-var opts = { port: 9000 };
-
-var server = psionic.webSocket.createServer(opts, function (client) { });
-
-// createServer returns the underlying ws server
-server.listen(9000);
-
-// client
-var promise = psionic.webSocket.connect(
-	// the first argument is passed to the ws WebSocket constructor
-    'ws://127.0.0.1:9000',
-    
-    // the second argument is used to configure the psionic client.
-    { describe: {} } 
-);
-
-promise.then(function (client) {
-	// you can get the underlying WebSocket after connecting.
-    // note that the client auto-reconnects, so this can change.
-	var underlyingSocket = client.state.socket;
-});
-```
-
-### browser support
-
-The WebSocket protocol does not use any polyfills at this time, so it's limited to IE10+. If that's not a problem, you can `require('psionic')` with browserify or webpack and use `psionic.webSocket.connect`. 
-
-
-# client object
-
-The client object is used on both the server- and client-side to send and receive messages.
-
-``` js
-// Default client structure
-client = {
-  events: EventEmitter,
-  state: EventEmitter + {
-    connected: true,
-    
-    // callId stores the id of the previous rpc-call,
-    // this is incremented for every call.
-    callId: 0,
-    
-    // describe is a reference to the functions that
-    // can be called from the remote. it is replaced
-    // by calling `client.describe`.
-    describe: { ... },
-    
-    // @emit is called when the remote triggers an event.
-    "@emit": Function
-    
-    // @describe is called when the remote is replacing its description.
-    "@describe": Function
-  },
-  
-  // the describe function calls @describe on the remote,
-  // to tell it which functions are available on this client.
-  describe: Function,
-  
-  // emit calls @emit on the remote, which triggers an event.
-  emit: Function
-  
-  // any other functions that are added using the describe function
-  // on the remote are found on this object as well.
 }
 ```
 
-### client.state events
+#### client.mjs
+```javascript
 
-Client.state has a few events that can be used to detect changes in the connection.
+import { createPeer } from "psionic";
 
-- `open` - connected, but no service description has been receieved
-- `describe` - an updated service description has been received
-- `connect` - connected, and a service description has been received
-- `send` - a message is ready to be sent to the remote
-- `message` - a message has been received from the remote
-- `result:{id}` - a remote procedure call has returned a value
-- `disconnect` - the transport has disconnect, but might reconnect
-- `close` - the transport is shutting down, and will not reconnect
+// create a peer, with the description we want to send when we connect.
+// could be anything, in this case, just the model we want the server to use.
+const peer = createPeer({ description: { model: process.argv[3] || 'gpt-5.2' } });
 
-### client.events events
+// connect to the local socket
+import { createConnection } from "net";
+import { createNodeSocketAdapter } from "psionic/adapters/socket";
+await peer.connect(createNodeSocketAdapter(createConnection({ port: 1234 })));
 
-Client.events is only triggered by calling `Client.emit(name, args)`, and can have any event names.
+// pass the argument from the command line to the server's prompt function
+for await (const chunk of peer.remote.prompt(process.argv[2])) {
+    // and stream the response back to the console as it comes in!
+    if (chunk.type === 'response.output_text.delta')
+        process.stdout.write(String(chunk.delta));
+}
 
-### creation options
-
-When connecting to a server using `socket.connect` or `webSocket.connect`,
-you can supply options (well, option..) to configure the client.
-
-- `describe` - state object that is sent to the server when connecting, can be used to pass state needed for initializing the remote service.
-
-# messaging protocol
-
-Psionic uses [JSON-RPC](http://json-rpc.org/wiki/specification) messages, with single line JSON. It does not support notification requests at this time, all requests must be responded to.
-
-#### example messages
-
-In order to begin communicating, both client and server must send their description.
-The client starts this, by calling the "@describe" function.
-
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(client to server)</div>
-
-```json
-{"id":1,"name":"@describe","args":[{"test":"psionic!function","example":"value"}]}
-````
-
-This tells the server to create an rpc-function called "test", and an extra value to add to the `client` object. The object can be arbitrarily nested.. When the server is ready, it responds to the message and sends its own description.
-
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(server to client)</div>
-
-```json
-{"id":1}
-{"id":5,"name":"@describe","args":[{"login":"psionic!function"}]}
+// close the connection so that the process exits
+peer.close();
+console.log('');
 ```
 
-The client then responds to the message, and calls its login function.
-
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(client to server)</div>
-
-```json
-{"id":5}
-{"id":2,"name":"logim","args":["username","password"]}
+Then start the server and client in separate terminal windows:
+```bash
+bun server.mjs
 ```
 
-After the server is done processing the request, it will respond with its result:
+```bash
+bun client.mjs "How many people live in New York City?" "gpt-5.1"
+# New York City has roughly **8.5–8.8 million** residents.
 
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(server to client)</div>
-
-```json
-{"id":2,"error":{"code":-32601,"message":"Function not found: logim"}}
+bun client.mjs "When was it founded?"
+# Founded in 1624 as New Amsterdam by the Dutch West India Company; it was renamed New York in 1664 after the English seized the colony.
 ```
 
-Different error codes are sent based on the JSON-RPC spec. `code` and `friendlyMessage` are used from any thrown Error objects. If no friendlyMessage is found, "Unhandled error" will be used. Let's try that again..
+The server will stream the response from OpenAI to the client, which will print it to the console as it arrives.
 
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(client to server)</div>
+You can abort the response at any time by pressing Ctrl-C in the client terminal, which will also trigger cleanup on the server.
 
-```json
-{"id":3,"name":"login","args":["username","password"]}
+## Why Psionic Exists
+
+Most RPC systems assume relatively static APIs and short-lived request/response interactions.
+
+Psionic was designed for environments where APIs are inherently dynamic, where functions and permissions can change at any point during runtime. Instead of treating an API as a fixed contract, Psionic models it as a live capability graph that peers synchronize with each other.
+
+## Bundle size
+
+Psionic has no dependencies. Total size depends on which modules you include:
+
+```
+psionic                  9.93 kB │ gzip:  3.73 kB
+adapters/socket          2.61 kB │ gzip:  1.17 kB
+adapters/websocket       1.61 kB │ gzip:  0.74 kB
+adapters/webworker       1.09 kB │ gzip:  0.48 kB
+codecs/default           1.24 kB │ gzip:  0.68 kB
+codecs/cbor              3.26 kB │ gzip:  1.41 kB
+session                 0.83 kB │ gzip:  0.51 kB
 ```
 
-There we go, everything's spelled right, now we'll get a response:
+## Dynamic capabilities and Error handling
 
-<div style="font-size:10px;margin-bottom:-8px;height:10px;">(server to client)</div>
+The remote state can be changed at any time by calling `peer.describe()`, this example uses dynamic descriptions to limit the amount of work a single peer can do.
 
-```json
-{"id":3,"result":true}
+#### server.mjs
+```javascript
+import { createPeer } from "psionic";
+import { WebSocketServer } from "ws";
+import { createWebSocketAdapter } from "psionic/adapters/websocket";
+const wss = new WebSocketServer({ port: 1234 });
+wss.on('connection', socket => handlePeer(createWebSocketAdapter(socket)));
+
+async function handlePeer(adapter) {
+    let tokens = 5;
+    const peer = createPeer({
+        description: describe(),
+        // if this is not true, any errors will have their text replaced by a generic message.
+        sendErrorMessages: true
+    });
+    await peer.connect(adapter);
+    peer.on('error', ex => {
+        console.log('Something went wrong:', ex.message);
+    });
+
+    async function dowork() {
+        await new Promise(r => setTimeout(r, Math.random() * 4_000));
+
+        const workResult = Math.random();
+
+        if (workResult > 0.5) {
+            // this will propagate as a remote error to the client.
+            throw new Error('Work failed!');
+        }
+
+        tokens -= 1;
+
+        // Send a new description to the client, which will cause their peer.remote to update.
+        await peer.describe(describe);
+
+        return workResult;
+    }
+
+    function describe() {
+        return {
+            tokens,
+            // dowork can only be called if we have tokens.
+            // so if we don't, we don't even include it, making it uncallable.
+            dowork: tokens > 0 ? dowork : undefined
+        };
+    }
+}
 ```
 
-And that's it!
+#### client.mjs
+```javascript
+import { createPeer } from "psionic";
 
+const peer = createPeer({
+    description: {},
+    // this allows us to receive error details from the server, otherwise all errors are generic.
+    receiveErrorMessages: true
+});
+
+// connect to the local websocket
+import { createWebSocketAdapter } from "psionic/adapters/websocket";
+await peer.connect(createWebSocketAdapter(new WebSocket('ws://localhost:1234')));
+
+while (peer.remote.dowork) {
+    try {
+        const result = await peer.remote.dowork();
+
+        console.log(`Work result: ${result}`);
+        console.log(`Tokens remaining: ${peer.remote.tokens}`);
+    } catch(ex) {
+        console.log('Something went wrong while working:', ex.message);
+    }
+}
+
+console.log('No more tokens!');
+peer.close();
+``` 
+
+## Key Concepts
+
+### Peer
+
+A `Peer` represents one side of a Psionic connection.
+
+Peers are symmetrical: either side may describe state, expose functions, invoke remote functions, or stream data.
+There is no client/server distinction at the protocol level.
+
+### Description
+
+A `Description` represents the capability surface exposed by a `Peer`.
+
+It defines which functions and properties are available to the remote `Peer`. Only values present in the `Description` may be accessed or invoked remotely.
+
+Descriptions may be updated at runtime. Removing a function from a description immediately revokes the remote peer’s ability to invoke it.
+
+```javascript
+peer.describe(newState) // swap the entire state with a new description object
+peer.describe(current => ({ ...current, ...changes })) // apply a partial update to the state
+```
+
+A description update is transactional. The call completes only after the remote peer acknowledges the new capability state, but the state is immediately updated on the local peer. If the call cannot complete for any reason, the connection is closed to prevent desynchronization.
+
+When using the function form, only the structural differences are sent, if any. This allows you to keep a larger description up-to-date with less overhead.
+
+Descriptions define the authority boundary of a peer.
+A peer may only access or invoke values explicitly described by the remote side.
+
+This simplifies reasoning about security and capabilities in a dynamic system.
+
+### Adapter
+
+An `Adapter` binds a `Peer` to a transport layer.
+
+Adapters are transport-agnostic and may be implemented for any bidirectional communication channel.
+
+There are built-in adapters for node.js sockets, web sockets and web workers, but you can implement your own for any transport that supports bidirectional communication.
+
+The adapter is responsible for:
+
+- Delivering frames between peers
+- Managing connection lifecycle
+- Providing an `Session` for operation lifecycle management
+
+The `Session` manages pending calls, generators, and cleanup semantics.
+
+## Events
+
+Peers emit events for connection lifecycle and state changes, most applications will use `ready` and `describe` events to manage connection state and react to description updates, and `error` to catch unhandled exceptions.
+
+- **`connect`** - Transport connection established.
+
+- **`ready`** -  Both peers have exchanged descriptions and remote capabilities are available.
+
+- **`disconnect`** - Transport connection lost.
+
+- **`describe`** - Remote description has been updated.
+
+- **`send`** - A frame is being sent to the remote peer.
+
+- **`message`** - A frame has been received from the remote peer.
+
+- **`error`** - An unhandled error was thrown during operation.
+
+The events can be registered and unregistered:
+
+```javascript
+const unsubscribe = peer.on('error', logErrorToMonitoringService);
+peer.off('error', logErrorToMonitoringService);
+unsubscribe(); // alternative way to unregister the listener
+```
+
+There is a utility for subscribing to the `describe` events 
+
+
+## Call context
+
+In some situations you may need to find the ID of the current RPC call, for tracing for example. There is a wrapping function that adds a context object to the start of the arguments list, which contains this information. You can access it like this:
+
+```javascript
+import { withContext } from "psionic";
+
+function myFunction(context, arg1, arg2) {
+    console.log(context.id); // the id that the peer sent to start the call.
+    console.log(context.operation.id); // the id of the operation operation associated with this call.
+}
+
+peer.describe(desc => ({ ...desc, myFunction: withContext(myFunction) }));
+```
+
+## Notable Users (let me know if you're using Psionic for something fun!)
+
+- **Koenigsegg** - Psionic is used for remote telemetry, OTA updates, and mobile application control of their hypercars in the wild. That's where it was built!
+
+- **FallenTrees** - Psionic is used to power dynamic AI analysis plugin system for real-time satellite data analysis and forecasting.
+
+- **Bergans of Norway** - Psionic powers analysis and visualization of AI-generated insights from Bergans' extensive purchase history and user behavior data, giving insights into trends and preferences to inform inventory and marketing decisions.
+
+## "Examples & Documentation
+
+There are examples in the `examples` folder:
+
+- [Cloudflare Pages / Workers Example](./examples/cloudflare)
+- [Node.js Child process streams](./examples/nodestreams)
+- [OpenAI chat](./examples/cli-chat)
+- [Work tokens example](./examples/tokens)
+
+And further documentation is in the `docs` folder:
+
+- [Protocol documentation](./docs/protocol.md)
+- [Extending Psionic](./docs/extending.md)

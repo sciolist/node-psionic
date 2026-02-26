@@ -1,0 +1,8 @@
+#!/bin/bash
+set -ue
+find __tests__ -name '*.ts' -maxdepth 1 | while read -r file
+do
+    echo "Running $file"
+    npx tsx "$file"
+done
+echo OK
