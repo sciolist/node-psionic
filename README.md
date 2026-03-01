@@ -26,8 +26,7 @@ import OpenAI from "openai";
 // listen for incoming socket connections and create a new peer for each one
 import { createServer } from "net";
 import { createNodeSocketAdapter } from "psionic/adapters/socket";
-import { createSession } from "../../src/session";
-createServer(socket => handlePeer(createNodeSocketAdapter(socket, { session: createSession() }))).listen(1234);
+createServer(socket => handlePeer(createNodeSocketAdapter(socket))).listen(1234);
 
 // global conversation_id for demo purposes.
 let conversation_id = undefined;

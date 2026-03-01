@@ -1,6 +1,6 @@
 {
   "name": "psionic",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Light-weight streaming RPC library for JavaScript",
   "license": "ISC",
   "author": "JDP",

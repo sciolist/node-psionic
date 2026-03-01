@@ -23,8 +23,8 @@ const OPEN = 1;
 const CLOSING = 2;
 const CLOSED = 3;
 
-const pingText = 'ping';
-const pongText = 'pong';
+const pingText = new Uint8Array([112, 105, 110, 103]); // "ping";
+const pongText = new Uint8Array([112, 111, 110, 103]); // "pong";
 
 /** Adapter for browser and standards-compatible WebSockets. */
 export function createWebSocketAdapter(socket: AdaptableWebSocket, opts?: WebSocketAdapterOptions): (peer: AdapterNext) => Promise<Connection> {
@@ -74,8 +74,8 @@ export function createWebSocketAdapter(socket: AdaptableWebSocket, opts?: WebSoc
 
         function onMessage(message: MessageEvent) {
             latestMessage = Date.now();
-            if (message.data === pongText) return; // Ignore pong responses
-            if (message.data === pingText) { socket.send(pongText); return; } // Respond to pings
+            if (message.data instanceof Uint8Array && message.data.every((v, i) => v === pongText[i])) return; // Ignore pong responses
+            if (message.data instanceof Uint8Array && message.data.every((v, i) => v === pingText[i])) { socket.send(pongText); return; } // Respond to pings
             const msg = getMessageBytes(message);
             if (msg.byteLength > maxFrameSize) {
                 onError(new Error('Frame size exceeds maximum allowed'));

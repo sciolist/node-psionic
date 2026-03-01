@@ -1,4 +1,3 @@
-
 import { createPeer } from "psionic";
 
 // create a peer, with the description we want to send when we connect.

@@ -81,13 +81,13 @@ export type BasicValue =
     ;;
 
 export type DescriptionValue<T> =
-      [T] extends [(...args: infer A extends any[]) => Promise<infer R>] ? (...args: A) => Promise<R>
-    : [T] extends [(...args: infer A extends any[]) => AsyncGenerator<infer Y, infer R, infer N>] ? (...args: A) => AsyncGenerator<Y, R, N>
-    : [T] extends [(string | number | boolean | null | undefined)] ? T
+      [T] extends [(string | number | boolean | null | undefined)] ? T
     // strip context from functions in descriptions, since context is only relevant for in-flight operations, not for the remote's description of its API.
     //: typeof CallContextSymbol extends keyof T ? DescriptionValue<T[typeof CallContextSymbol]>
     : [T] extends [readonly (infer U)[]] ? DescriptionValue<U>[]
     : [T] extends [object] ? Description<T>
+    : [T] extends [(...args: infer A extends any[]) => Promise<infer R>] ? (...args: A) => Promise<R>
+    : [T] extends [(...args: infer A extends any[]) => AsyncGenerator<infer Y, infer R, infer N>] ? (...args: A) => AsyncGenerator<Y, R, N>
     : never
     ;
 
