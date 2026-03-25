@@ -306,7 +306,7 @@ function myFunction(context, arg1, arg2) {
 peer.describe(desc => ({ ...desc, myFunction: withContext(myFunction) }));
 ```
 
-## "Examples & Documentation
+## Examples & Documentation
 
 There are examples in the `examples` folder:
 
