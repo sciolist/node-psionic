@@ -306,14 +306,6 @@ function myFunction(context, arg1, arg2) {
 peer.describe(desc => ({ ...desc, myFunction: withContext(myFunction) }));
 ```
 
-## Notable Users (let me know if you're using Psionic for something fun!)
-
-- **Koenigsegg** - Psionic is used for remote telemetry, OTA updates, and mobile application control of their hypercars in the wild. That's where it was built!
-
-- **FallenTrees** - Psionic is used to power dynamic AI analysis plugin system for real-time satellite data analysis and forecasting.
-
-- **Bergans of Norway** - Psionic powers analysis and visualization of AI-generated insights from Bergans' extensive purchase history and user behavior data, giving insights into trends and preferences to inform inventory and marketing decisions.
-
 ## "Examples & Documentation
 
 There are examples in the `examples` folder:
