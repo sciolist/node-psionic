@@ -25,7 +25,6 @@ export function resend(inner: (peer: AdapterNext) => Promise<Connection>): (peer
             close: newAdapter.close,
             send: async (frame) => {
                 if (frame[0] === 'K' || frame[0] === 'E') {
-                    console.log(frame);
                     frames.push(frame);
                 }
                 newAdapter.send(frame);
