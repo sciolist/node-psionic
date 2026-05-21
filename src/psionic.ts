@@ -785,7 +785,7 @@ async function handleInvocation(peer: Peer, session: Session, id: ID, name: stri
             if (complete) return;
             complete = true;
             operation.cleanup();
-            peer.send(OpOK, id, result);
+            if (id) peer.send(OpOK, id, result);
         }
     } catch (ex: any) {
         if (operation) {
