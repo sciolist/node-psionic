@@ -14,6 +14,6 @@ export default defineConfig({
   outDir: "dist",
   target: "es2025",
   sourcemap: true,
-  minify: false,
+  minify: true,
   format: ['esm']
 });
