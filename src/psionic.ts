@@ -341,6 +341,9 @@ export function createPeer<
         if (peer.readyState === STATE_DISCONNECTED) return;
         peer.readyState = STATE_DISCONNECTED;
         peer.emit('readyStateChange', peer.readyState);
+        if (peer.session) {
+            peer.session.clear();
+        }
         if (peer.connection) {
             peer.connection.close(err);
         }
