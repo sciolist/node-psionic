@@ -3,3 +3,4 @@ dist
 package-lock.json
 bun.lockb
 .DS_Store
+.npmrc
