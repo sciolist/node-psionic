@@ -11,10 +11,11 @@ export type WebSocketAdapterOptions = {
 };
 
 export type AdaptableWebSocket = {
+    binaryType?: string;
     readyState: number;
     addEventListener: (type: any, listener: (event: any) => void) => void;
     removeEventListener: (type: any, listener: (event: any) => void) => void;
-    send: (message: string | ArrayBufferView | Blob | ArrayBufferLike) => void;
+    send: (message: any) => void;
     close: (code?: number, reason?: string) => void;
 };
 
@@ -28,6 +29,7 @@ const pongText = new Uint8Array([112, 111, 110, 103]); // "pong";
 
 /** Adapter for browser and standards-compatible WebSockets. */
 export function createWebSocketAdapter(socket: AdaptableWebSocket, opts?: WebSocketAdapterOptions): (peer: AdapterNext) => Promise<Connection> {
+    if (socket.binaryType === 'blob') throw new Error("websocket blob binary type not supported, set ws.binaryType to 'arrayBuffer'.");
     const pingInterval = opts?.pingInterval ?? 10000;
     return async function connectPeer(peer: AdapterNext) {
         let latestMessage = Date.now();
