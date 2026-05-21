@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "test": "./tests",
-    "build": "tsdown && node make-package.js"
+    "build": "tsdown && node make-package.js",
+    "check-size": "tsdown --minify"
   },
   "devDependencies": {
     "@types/node": "^25.2.3",

@@ -29,7 +29,7 @@ const pongText = new Uint8Array([112, 111, 110, 103]); // "pong";
 
 /** Adapter for browser and standards-compatible WebSockets. */
 export function createWebSocketAdapter(socket: AdaptableWebSocket, opts?: WebSocketAdapterOptions): (peer: AdapterNext) => Promise<Connection> {
-    if (socket.binaryType === 'blob') throw new Error("websocket blob binary type not supported, set ws.binaryType to 'arrayBuffer'.");
+    if (socket.binaryType === 'blob') throw new Error("websocket blob binary type not supported, set ws.binaryType to 'arraybuffer'.");
     const pingInterval = opts?.pingInterval ?? 10000;
     return async function connectPeer(peer: AdapterNext) {
         let latestMessage = Date.now();
