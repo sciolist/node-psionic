@@ -124,13 +124,15 @@ Psionic was designed for environments where APIs are inherently dynamic, where f
 Psionic has no dependencies. Total size depends on which modules you include:
 
 ```
-psionic                  9.93 kB │ gzip:  3.73 kB
-adapters/socket          2.61 kB │ gzip:  1.17 kB
-adapters/websocket       1.61 kB │ gzip:  0.74 kB
-adapters/webworker       1.09 kB │ gzip:  0.48 kB
-codecs/default           1.24 kB │ gzip:  0.68 kB
+psionic                 10.28 kB │ gzip:  3.82 kB
+session                  1.26 kB │ gzip:  0.68 kB
 codecs/cbor              3.26 kB │ gzip:  1.41 kB
-session                 0.83 kB │ gzip:  0.51 kB
+codecs/psionic           0.96 kB │ gzip:  0.59 kB
+adapters/socket          2.54 kB │ gzip:  1.13 kB
+adapters/websocket       2.19 kB │ gzip:  0.94 kB
+adapters/webworker       0.64 kB │ gzip:  0.37 kB
+adapters/reconnect       0.54 kB │ gzip:  0.36 kB
+adapters/resend          0.33 kB │ gzip:  0.24 kB
 ```
 
 ## Dynamic capabilities and Error handling
